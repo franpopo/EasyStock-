@@ -12,10 +12,10 @@ ventana.configure(bg="grey")
 tk.Wm.wm_title(ventana, "Easy Stock")
 ventana.geometry("500x500")
 
-productos = []  # acá guardamos los productos como diccionarios
+productos = []  
 ventas = []
 
-# Variable global para asegurar que la ventana solo aparezca una vez
+
 contraseña_ok = False
 
 def pedir_contraseña():
@@ -23,7 +23,7 @@ def pedir_contraseña():
     if contraseña_ok:
         return
     while True:
-        # Ventana modal bloqueante
+        
         pwd = simpledialog.askstring("Contraseña requerida", "Introduce la contraseña para continuar:", show='*')
         if pwd is None:
             continue
@@ -35,7 +35,7 @@ def pedir_contraseña():
             messagebox.showerror("Error", "Contraseña incorrecta. Intenta de nuevo.")
 
 def iniciar_temporizador(ventana):
-    # Espera 5 minutos (5 * 60 * 1000 ms) y llama a la función
+    
     ventana.after(5 * 60 * 1000, pedir_contraseña)
 
 iniciar_temporizador(ventana)
@@ -46,7 +46,7 @@ iniciar_temporizador(ventana)
 ConexionSql = sq.connect("StockManager.db")
 cursor = ConexionSql.cursor()
 
-# <-- cambio mínimo: crear la tabla productos incluyendo codigo_barras
+
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS productos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,7 +86,7 @@ ConexionSql.commit()
 # FUNCIONES AUXILIARES
 # -------------------------------
 
-# Entry de búsqueda arriba de ListaProductos
+
 EntryBusqueda = tk.Entry(ventana, font = ("Arial", 16))
 EntryBusqueda.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=5, pady=(3,0))
 EntryBusqueda.insert(0, "Buscar Producto")
@@ -127,7 +127,7 @@ def CambiarProducto():
 def CargarProductos():
     ListaProductos.delete(0, tk.END)
     productos.clear()
-    # <-- cambio mínimo: traer codigo_barras también
+    
     cursor.execute("SELECT id, nombre, stock, precio, codigo_barras FROM productos")
     filas = cursor.fetchall()
     for fila in filas:
@@ -138,10 +138,10 @@ def CargarProductos():
 
 def CargarDesdeExcel():
     try:
-        # Intentar leer el archivo "productos.xlsx" en la misma carpeta
+       
         df = pd.read_excel("Control_Huevos_Mayorista.xlsx")
 
-        # Validar que existan las columnas mínimas necesarias
+        
         columnas = [c.lower() for c in df.columns]
         if not all(col in columnas for col in ["nombre", "stock", "precio"]):
             messagebox.showerror(
@@ -151,7 +151,7 @@ def CargarDesdeExcel():
             )
             return
 
-        # Iterar filas y cargarlas a la base de datos
+        
         for _, fila in df.iterrows():
             nombre = str(fila["nombre"])
             stock = int(fila["stock"])
@@ -184,7 +184,7 @@ def MenuRegistrarVenta():
 
     entradas_cant = {}
 
-    # <-- NUEVO: entrada para escanear código de barras
+    
     tk.Label(MenuVenta, text="Escanear código de barras").pack(pady=5)
     EntradaCB = tk.Entry(MenuVenta)
     EntradaCB.pack(pady=5)
@@ -193,7 +193,7 @@ def MenuRegistrarVenta():
     frameListas = tk.Frame(MenuVenta, bg="lightgrey")
     frameListas.pack(side="top", expand=True, fill="both", padx=10, pady=10)
 
-    # Columna productos disponibles
+    
     frameDisponibles = tk.Frame(frameListas, bg="lightgrey")
     frameDisponibles.pack(side="left", expand=True, fill="both", padx=5)
     tk.Label(frameDisponibles, text="Productos Disponibles").pack(anchor="n", pady=5)
@@ -204,7 +204,7 @@ def MenuRegistrarVenta():
         detalles = f"{p['nombre']} | stock: {p['stock']} | precio: {p['precio']}"
         ListaDisponibles.insert(tk.END, detalles)
 
-    # Columna carrito
+    
     frameCarrito = tk.Frame(frameListas, bg="lightgrey")
     frameCarrito.pack(side="left", expand=True, fill="both", padx=5)
     tk.Label(frameCarrito, text="Carrito").pack(anchor="n", pady=5)
@@ -212,13 +212,13 @@ def MenuRegistrarVenta():
     frameItemsCarrito = tk.Frame(frameCarrito, bg="lightgrey")
     frameItemsCarrito.pack(expand=True, fill="both", pady=5, padx=5)
 
-    # Función para agregar producto al carrito por código de barras
+    
     def agregar_por_cb(event):
         codigo = EntradaCB.get().strip()
         EntradaCB.delete(0, tk.END)
         if codigo == "":
             return
-        # buscar por codigo_barras en la lista 'productos' en memoria
+        
         producto = next((p for p in productos if p.get("codigo_barras") == codigo), None)
 
 
@@ -227,7 +227,7 @@ def MenuRegistrarVenta():
             messagebox.showerror("Error", f"Producto con código {codigo} no registrado")
             return
 
-        # Si ya está en carrito, sumar 1 unidad
+        
         for widget in frameItemsCarrito.winfo_children():
             if getattr(widget, "producto_id", None) == producto['id']:
                 entry = entradas_cant[producto['id']]
@@ -235,7 +235,7 @@ def MenuRegistrarVenta():
                 entry.insert(0, str(int(entry.get() or 0) + 1))
                 return
 
-        # Si no estaba, agregar al carrito con cantidad inicial 1
+        
         fila = tk.Frame(frameItemsCarrito, bg="lightgrey")
         fila.pack(fill="x", pady=2)
         fila.producto_id = producto['id']
@@ -245,10 +245,10 @@ def MenuRegistrarVenta():
         e.insert(0, "1")
         entradas_cant[producto['id']] = e
 
-    # Vincular Enter con la función
+    
     EntradaCB.bind("<Return>", agregar_por_cb)
 
-    # Función agregar al carrito
+    
     def agregar_al_carrito(event):
         seleccion = ListaDisponibles.curselection()
         if not seleccion:
@@ -257,19 +257,19 @@ def MenuRegistrarVenta():
         p = productos[idx]
         for widget in frameItemsCarrito.winfo_children():
             if isinstance(widget, tk.Frame) and getattr(widget, "producto_id", None) == p['id']:
-                return  # ya agregado
+                return  
         fila = tk.Frame(frameItemsCarrito, bg="lightgrey")
         fila.pack(fill="x", pady=2)
         fila.producto_id = p['id']
         tk.Label(fila, text=p['nombre'], width=25, anchor="w").pack(side="left")
         e = tk.Entry(fila, width=5)
         e.pack(side="left", padx=5)
-        e.insert(0, "1")  # unificación: cantidad inicial
+        e.insert(0, "1")  
         entradas_cant[p['id']] = e
 
     ListaDisponibles.bind("<Double-Button-1>", agregar_al_carrito)
 
-    # Frame botones
+    
     frameBotones = tk.Frame(MenuVenta, bg="lightgrey")
     frameBotones.pack(side="bottom", expand=False, fill="x", padx=10, pady=10)
 
@@ -277,7 +277,7 @@ def MenuRegistrarVenta():
         lineas = []
         total_venta = 0.0
 
-        # Validar primero si hay stock suficiente
+        
         for id_prod, entry in entradas_cant.items():
             cant = int(entry.get()) if entry.get() else 0
             if cant <= 0:
@@ -287,9 +287,9 @@ def MenuRegistrarVenta():
             if cant > stock_disp:
                 messagebox.showerror("Error", f"No hay suficiente stock de {p['nombre']}.\n"
                                               f"Stock disponible: {stock_disp}, pedido: {cant}")
-                return  # cancela toda la venta
+                return  
 
-        # Si pasa la validación, armar la venta
+        
         for id_prod, entry in entradas_cant.items():
             cant = int(entry.get()) if entry.get() else 0
             if cant <= 0:
@@ -304,14 +304,14 @@ def MenuRegistrarVenta():
             messagebox.showinfo("Venta", "No hay cantidades válidas.")
             return
 
-        # Insertar en tabla ventas
+        
         cursor.execute(
             "INSERT INTO ventas (producto, cantidad, total) VALUES (?, ?, ?)",
             (None, None, total_venta)
         )
         venta_id = cursor.lastrowid
 
-        # Insertar los ítems y actualizar stock
+        
         for p, cant, precio, subtotal in lineas:
             cursor.execute(
                 "INSERT INTO venta_items (venta_id, producto, cantidad, precio, subtotal) VALUES (?, ?, ?, ?, ?)",
@@ -444,7 +444,7 @@ def MenuTopMensual():
     btn_der = tk.Button(frame_header, text="-->", width=5)
     btn_der.pack(side="right", padx=10)
 
-    # Frame con grid para alinear títulos y listbox
+    
     frame_listbox = tk.Frame(top_window, bg="lightgrey")
     frame_listbox.pack(expand=True, fill="both", padx=10, pady=10)
 
@@ -452,13 +452,13 @@ def MenuTopMensual():
     frame_listbox.columnconfigure(1, weight=1)
     frame_listbox.rowconfigure(1, weight=1)
 
-    # Encabezados
+    
     tk.Label(frame_listbox, text="Más unidades vendidas", bg="lightgrey", font=("Arial", 12, "bold"))\
         .grid(row=0, column=0, sticky="n")
     tk.Label(frame_listbox, text="Más ingresos generados", bg="lightgrey", font=("Arial", 12, "bold"))\
         .grid(row=0, column=1, sticky="n")
 
-    # Listbox alineados
+    
     listbox_unidades = tk.Listbox(frame_listbox)
     listbox_unidades.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
 
@@ -533,7 +533,7 @@ def MenuAgregarProducto(ModificandoProducto, producto=None, indice=None):
     else:
         tk.Wm.wm_title(MenuAgregar, "Agregar Producto")
 
-    # <-- cambio mínimo: agrego campo texto para codigo de barras
+    
     tk.Label(MenuAgregar, text="Código de barras").grid(row=2, column=0, pady=10)
     TextoCB = tk.Entry(MenuAgregar)
     TextoCB.grid(row=3, column=0, sticky="nsew", pady=5)
@@ -559,7 +559,7 @@ def MenuAgregarProducto(ModificandoProducto, producto=None, indice=None):
     if ModificandoProducto:
         TextoPrecio.insert(0, producto["precio"])
 
-    # Validación
+    
     def validar_entero(text):
         return text.isdigit() or text == ""
     def validar_decimal(text):
@@ -578,7 +578,7 @@ def MenuAgregarProducto(ModificandoProducto, producto=None, indice=None):
             "precio": TextoPrecio.get()
         }
 
-        # solo agregar codigo_barras si hay algo escrito
+        
         codigo = TextoCB.get().strip()
         if codigo != "":
             nuevo["codigo_barras"] = codigo
@@ -647,9 +647,7 @@ BotonHistorialVentas = tk.Button(ventana, text="Historial de ventas", bg="violet
 BotonHistorialVentas.grid(row=7, column=0, columnspan=2, sticky="nsew", padx=5, pady=1)
 
 
-# -------------------------------
-# CIERRE
-# -------------------------------
+
 def on_closing():
     ConexionSql.commit()
     ConexionSql.close()
