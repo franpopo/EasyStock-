@@ -202,7 +202,7 @@ class AddEditProductWindow(ctk.CTkToplevel):
         self.producto = producto
         self.callback = callback
         self.title("Agregar producto" if producto is None else "Modificar producto")
-        self.geometry("480x260")
+        self.geometry("500x360")
         self.configure(padx=16, pady=16)
 
         # Entradas
@@ -605,16 +605,43 @@ class MainApp(ctk.CTk):
                 self.tienda_id = tid
                 dlg.destroy()
                 self.recargar_pagina()
+
+            def eliminar():
+                sel = lb.curselection()
+                if not sel:
+                    return
+                text = lb.get(sel[0])
+                tid = next(x["id"] for x in tiendas if x["nombre"] == text)
+                if not messagebox.askyesno("Confirmar", f"Eliminar sucursal {text}? Se eliminarán todos sus productos."):
+                    return
+                # eliminar productos asociados
+                prods = self.db.list_productos(tid)
+                for p in prods:
+                    self.db.delete_producto(p['id'])
+                # eliminar tienda
+                self.db.cursor.execute("DELETE FROM tiendas WHERE id = ?", (tid,))
+                self.db.conn.commit()
+                # recargar lista
+                lb.delete(0, tk.END)
+                tiendas.clear()
+                tiendas.extend(self.db.list_tiendas())
+                for t in tiendas:
+                    lb.insert(tk.END, f"{t['nombre']}")
+                # si era la tienda seleccionada, resetear
+                if self.tienda_id == tid:
+                    self.tienda_id = None
+
             def agregar():
                 nombre = simpledialog.askstring("Nueva sucursal", "Nombre sucursal:")
-                if not nombre:
+                if not nombre or nombre.strip() == '':
                     return
                 self.db.add_tienda(nombre)
                 lb.delete(0, tk.END)
-                for t in self.db.list_tiendas():
+                for t in reversed(self.db.list_tiendas()):
                     lb.insert(tk.END, f"{t['id']} - {t['nombre']}")
             ctk.CTkButton(frame, text='Elegir', command=elegir).pack(side='left', expand=True, padx=6)
             ctk.CTkButton(frame, text='Agregar sucursal', command=agregar).pack(side='right', expand=True, padx=6)
+            ctk.CTkButton(frame, text='Eliminar sucursal', command=eliminar).pack(side='right', expand=True, padx=6)
             dlg.wait_window()
         # si tienda ya setea recarga
         if self.tienda_id:
@@ -670,7 +697,7 @@ class MainApp(ctk.CTk):
 
     def cargar_desde_excel(self):
         try:
-            df = pd.read_excel('Control_Huevos_Mayorista.xlsx')
+            df = pd.read_excel('archivo.excel')
             cols = [c.lower() for c in df.columns]
             if not all(col in cols for col in ['nombre', 'stock', 'precio']):
                 messagebox.showerror('Error', 'Excel debe contener columnas: nombre, stock, precio (opcional: codigo_barras)')
